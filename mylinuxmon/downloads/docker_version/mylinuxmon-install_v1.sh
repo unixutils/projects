@@ -105,7 +105,7 @@ echo "Enter $var_mymonid System Password if Prompted.."
 if [ $python_version_number -eq 2 ]; then
 python -m SimpleHTTPServer 9000"
 elif [ $python_version_number -eq 3 ]; then
-nohup python3 -m http.server 9000" $var_mymonid 
+python3 -m http.server 9000" $var_mymonid 
 else
 echo "Please Install python 2.x or above to install mylinuxmon"
 echo "exiting"
