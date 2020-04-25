@@ -1,0 +1,19 @@
+host_config:
+  groups: 
+    group1: 
+      host1:
+        ssh_user: web_user
+        domain_name: mydomain.com
+      host2:
+        ssh_user: db_user
+        domain_name: somedomain.com
+    group2:
+      host3:
+        ssh_user: app_user
+        domain_name: other.com
+      host4:
+        ssh_user: sales_user
+        domain_name: somethingelse.com
+  valid_host_params:
+        - ssh_user
+        - domain_name
