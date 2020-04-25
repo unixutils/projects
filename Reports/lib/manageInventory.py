@@ -116,4 +116,3 @@ class manage_host_config:
             for param in self.hostparams:
                 hostNameDict[self.hostName].update({ locals()['param'] : getattr(self, locals()['param'])})
             self.hostConfig['host_config']['groups'][self.groupName].update(hostNameDict)
-            print(self.getHostInfo())
