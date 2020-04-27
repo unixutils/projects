@@ -6,9 +6,8 @@ import yaml
 here = os.path.dirname(os.path.realpath(__file__))
 
 class manage_host_config:
-
     def __init__(self, **kwargs):
-        self.configFile = os.path.join(here, "..", "dat", "test.yaml")
+        self.configFile = os.path.join(here, "..", "dat", "inventory.yaml")
         if 'groupName' in kwargs:
             self.groupName = kwargs['groupName']
         else:
@@ -23,7 +22,7 @@ class manage_host_config:
             if locals()['param'] not in kwargs:
                kwargs[locals()['param']] = 'NULL'
             setattr(self, locals()['param'], kwargs[locals()['param']])
-        
+
     def loadHostConfig(self):
         with open(self.configFile, 'r') as stream:
             try:
@@ -32,13 +31,13 @@ class manage_host_config:
                 raise Exception('Unable to read inventory.')
             return host_config
 
-    def listGroups(self):
+    def getGroups(self):
         return self.hostConfig['host_config']['groups'].keys()
 
-    def listHosts(self):
+    def getHosts(self):
         hostList = []
         if self.groupName == 'all':
-            for group in self.listGroups():
+            for group in self.getGroups():
                 for host in self.hostConfig['host_config']['groups'][group].keys():
                     hostList.append(host)
         else:
@@ -49,7 +48,7 @@ class manage_host_config:
 
     def getHostGroup(self):
         if self.hostExists():
-            for group in self.listGroups():
+            for group in self.getGroups():
                 if self.hostName in self.hostConfig['host_config']['groups'][group].keys():
                     return group
         else:
@@ -58,11 +57,11 @@ class manage_host_config:
     def getHostInfo(self):
         hostInfoDict = {}
         if self.hostName == 'all':
-           for group in self.listGroups():
+           for group in self.getGroups():
                for host in self.hostConfig['host_config']['groups'][group].keys():
                    hostInfo = self.hostConfig['host_config']['groups'][group][host]
                    hostInfoDict.update({host : hostInfo})
-        elif self.hostExists(): 
+        elif self.hostExists():
             group = self.getHostGroup()
             hostInfo = self.hostConfig['host_config']['groups'][group][self.hostName]
             hostInfoDict.update({self.hostName : hostInfo})
@@ -71,13 +70,13 @@ class manage_host_config:
         return hostInfoDict
 
     def groupExists(self):
-        if self.groupName in self.listGroups():
+        if self.groupName in self.getGroups():
            return True
         else:
            return False
 
     def hostExists(self):
-        if self.hostName in self.listHosts()[0]:
+        if self.hostName in self.getHosts()[0]:
            return True
         else:
            return False
@@ -98,7 +97,7 @@ class manage_host_config:
         param_missing = False
         for param in self.hostparams:
            if not hasattr(self, locals()['param']) or getattr(self, locals()['param']) == 'NULL':
-              param_missing = True               
+              param_missing = True
         if self.hostName == 'all':
             raise Exception('Host name cannot be "all"')
         elif self.hostExists():
@@ -109,10 +108,23 @@ class manage_host_config:
             raise Exception('Requires' + ' ' + str(self.hostparams) + ' ' + 'parameteres to add host' + ' ' + self.hostName)
         else:
             return True
-      
+
     def addNewHost(self):
         if self.validateNewHostParams():
             hostNameDict = {self.hostName : {}}
             for param in self.hostparams:
                 hostNameDict[self.hostName].update({ locals()['param'] : getattr(self, locals()['param'])})
             self.hostConfig['host_config']['groups'][self.groupName].update(hostNameDict)
+
+    def deleteGroup(self):
+        if self.groupExists():
+            self.hostConfig['host_config']['groups'].pop(self.groupName)
+        else:
+            raise Exception( 'group:' + '"' + self.groupName + '"' + ' ' + 'does not exists.')
+    
+    def deleteHost(self):
+        if self.hostExists():
+            group = self.getHostGroup()
+            self.hostConfig['host_config']['groups'][group].pop(self.hostname)
+        else:
+            raise Exception( 'host:' + '"' + self.hostName + '"' + ' ' + 'does not exists.')
