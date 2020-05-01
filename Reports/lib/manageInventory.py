@@ -11,11 +11,12 @@ class manage_host_config:
         if 'groupName' in kwargs:
             self.groupName = kwargs['groupName']
         else:
-            self.groupName = 'all'
+            self.groupName = None
         if 'hostName' in kwargs:
             self.hostName = kwargs['hostName']
         else:
-            self.hostName = 'all'
+            self.hostName = None
+
         self.hostConfig = self.loadHostConfig()
         self.hostparams = self.hostConfig['host_config']['valid_host_params']
         for param in self.hostparams:
@@ -36,7 +37,7 @@ class manage_host_config:
 
     def getHosts(self):
         hostList = []
-        if self.groupName == 'all':
+        if not self.groupName:
             for group in self.getGroups():
                 for host in self.hostConfig['host_config']['groups'][group].keys():
                     hostList.append(host)
@@ -54,21 +55,6 @@ class manage_host_config:
         else:
             raise Exception(self.hostName + ' ' + 'does not exist.')
 
-    def getHostInfo(self):
-        hostInfoDict = {}
-        if self.hostName == 'all':
-           for group in self.getGroups():
-               for host in self.hostConfig['host_config']['groups'][group].keys():
-                   hostInfo = self.hostConfig['host_config']['groups'][group][host]
-                   hostInfoDict.update({host : hostInfo})
-        elif self.hostExists():
-            group = self.getHostGroup()
-            hostInfo = self.hostConfig['host_config']['groups'][group][self.hostName]
-            hostInfoDict.update({self.hostName : hostInfo})
-        else:
-            raise Exception(self.hostName + ' ' + 'does not existsss.')
-        return hostInfoDict
-
     def groupExists(self):
         if self.groupName in self.getGroups():
            return True
@@ -81,40 +67,17 @@ class manage_host_config:
         else:
            return False
 
-    def validateNewGroupParams(self):
-        if self.groupName == 'all':
-            raise Exception('Group name cannot be "all"')
-        elif self.groupExists():
-            raise Exception(self.groupName + ' ' + 'already exists.')
-        else:
-            return True
-
-    def addNewGroup(self):
-        if self.validateGroupParams():
+    def addGroup(self):
+        if not self.groupExists():
             self.hostConfig['host_config']['groups'].update({self.groupName:''})
-
-    def validateNewHostParams(self):
-        param_missing = False
-        for param in self.hostparams:
-           if not hasattr(self, locals()['param']) or getattr(self, locals()['param']) == 'NULL':
-              param_missing = True
-        if self.hostName == 'all':
-            raise Exception('Host name cannot be "all"')
-        elif self.hostExists():
-            raise Exception('"' + self.hostName + '"' + ' ' + 'already exists.')
-        elif not self.groupExists():
-            raise Exception('"' + self.groupName + '"' + ' ' + 'does not exists.')
-        elif param_missing:
-            raise Exception('Requires' + ' ' + str(self.hostparams) + ' ' + 'parameteres to add host' + ' ' + self.hostName)
         else:
-            return True
+            raise Exception('"' + self.groupName + '"' + ' ' + 'already exists.')
 
-    def addNewHost(self):
-        if self.validateNewHostParams():
-            hostNameDict = {self.hostName : {}}
-            for param in self.hostparams:
-                hostNameDict[self.hostName].update({ locals()['param'] : getattr(self, locals()['param'])})
-            self.hostConfig['host_config']['groups'][self.groupName].update(hostNameDict)
+    def addHost(self):
+        if not self.hostExists():
+            self.hostConfig['host_config']['groups'][self.groupName].update({self.hostName:''})
+        else:
+            raise Exception('"' + self.groupName + '"' + ' ' + 'already exists.')
 
     def deleteGroup(self):
         if self.groupExists():
