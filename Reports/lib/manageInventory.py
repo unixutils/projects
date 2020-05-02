@@ -5,24 +5,10 @@ import yaml
 
 here = os.path.dirname(os.path.realpath(__file__))
 
-class manage_host_config:
+class manage_host_config(object):
     def __init__(self, **kwargs):
         self.configFile = os.path.join(here, "..", "dat", "inventory.yaml")
-        if 'groupName' in kwargs:
-            self.groupName = kwargs['groupName']
-        else:
-            self.groupName = None
-        if 'hostName' in kwargs:
-            self.hostName = kwargs['hostName']
-        else:
-            self.hostName = None
-
         self.hostConfig = self.loadHostConfig()
-        self.hostparams = self.hostConfig['host_config']['valid_host_params']
-        for param in self.hostparams:
-            if locals()['param'] not in kwargs:
-               kwargs[locals()['param']] = 'NULL'
-            setattr(self, locals()['param'], kwargs[locals()['param']])
 
     def loadHostConfig(self):
         with open(self.configFile, 'r') as stream:
@@ -35,49 +21,52 @@ class manage_host_config:
     def getGroups(self):
         return self.hostConfig['host_config']['groups'].keys()
 
-    def getHosts(self):
+    def getHosts(self, groupName = None):
         hostList = []
-        if not self.groupName:
+        if not groupName:
             for group in self.getGroups():
                 for host in self.hostConfig['host_config']['groups'][group].keys():
                     hostList.append(host)
         else:
-            if self.groupExists():
+            if self.groupExists(groupName):
                 host = self.hostConfig['host_config']['groups'][self.groupName].keys()
                 hostList.append(host)
         return hostList
 
-    def getHostGroup(self):
-        if self.hostExists():
+    def getHostGroup(self, hostName):
+        if self.hostExists(hostName):
             for group in self.getGroups():
-                if self.hostName in self.hostConfig['host_config']['groups'][group].keys():
+                if hostName in self.hostConfig['host_config']['groups'][group].keys():
                     return group
         else:
-            raise Exception(self.hostName + ' ' + 'does not exist.')
+            raise Exception(hostName + ' ' + 'does not exist.')
 
-    def groupExists(self):
-        if self.groupName in self.getGroups():
+    def groupExists(self, groupName):
+        if groupName in self.getGroups():
            return True
         else:
            return False
 
-    def hostExists(self):
-        if self.hostName in self.getHosts()[0]:
+    def hostExists(self, hostName):
+        if hostName in self.getHosts():
            return True
         else:
            return False
 
-    def addGroup(self):
-        if not self.groupExists():
-            self.hostConfig['host_config']['groups'].update({self.groupName:''})
+    def addGroup(self, groupName):
+        if not self.groupExists(groupName):
+            self.hostConfig['host_config']['groups'].update({groupName:{}})
         else:
-            raise Exception('"' + self.groupName + '"' + ' ' + 'already exists.')
+            raise Exception('"' + groupName + '"' + ' ' + 'already exists.')
 
-    def addHost(self):
-        if not self.hostExists():
-            self.hostConfig['host_config']['groups'][self.groupName].update({self.hostName:''})
+    def addHost(self, hostName, groupName):
+        if not self.hostExists(hostName):
+            if self.groupExists(groupName):
+                self.hostConfig['host_config']['groups'][groupName].update({hostName:''})
+            else:
+                raise Exception('"' + groupName + '"' + ' ' + 'does not exists.')
         else:
-            raise Exception('"' + self.groupName + '"' + ' ' + 'already exists.')
+            raise Exception('"' + hostName + '"' + ' ' + 'already exists.')
 
     def deleteGroup(self):
         if self.groupExists():
@@ -91,3 +80,55 @@ class manage_host_config:
             self.hostConfig['host_config']['groups'][group].pop(self.hostname)
         else:
             raise Exception( 'host:' + '"' + self.hostName + '"' + ' ' + 'does not exists.')
+
+    def setDefaultUser(self, defaultUser):
+            self.hostConfig['host_config'].update({'default_user':defaultUser})
+
+    def getDefaultUser(self):
+        if self.hostConfig['host_config']['default_user'].strip() != '':
+            defaultInventoryUser = self.hostConfig['host_config']['default_user']
+        else:
+            defaultInventoryUser = None
+        return defaultInventoryUser
+
+    def deleteDefaultUser(self):
+        self.hostConfig['host_config'].update({'default_user':''})
+
+    def setDefaultSshKey(self, defaultSshKey):
+        if self.keyExists(defaultSshKey):
+            self.hostConfig['host_config'].update({'default_ssh_key_path':defaultSshKey})
+        else:
+            raise Exception('Key file: {} does not exists.'.format(defaultSshKey))
+
+    def getDefaultSshKey(self):
+        if not self.hostConfig['host_config']['default_ssh_key_path']:
+            defaultInventorySshKeyPath = self.hostConfig['host_config']['default_ssh_key_path']
+            if self.keyExists(str(defaultInventorySshKeyPath)):
+                defaultInventorySshKey = defaultInventorySshKeyPath
+            else:
+                defaultInventorySshKey = None
+        else:
+            defaultInventorySshKey = None
+        return defaultInventorySshKey
+     
+    def deleteDefaultSshKey(self):
+        self.hostConfig['host_config'].update({'default_ssh_key_path':''})
+
+    def setDefaultEncryptedSshPassword(self, defaultEncryptedSshPassword):
+        self.hostConfig['host_config'].update({'default_password_encrypted':defaultEncryptedSshPassword})
+
+    def getDefaultEncryptedSshPassword(self):
+        if self.hostConfig['host_config']['default_password_encrypted'].strip() != '':
+            defaultEncrypedSshPassword = self.hostConfig['host_config']['default_password_encrypted']
+        else:
+            defaultEncrypedSshPassword = None
+        return defaultEncrypedSshPassword
+
+    def deleteDefaultEncryptedSshPassword(self):
+        self.hostConfig['host_config'].update({'default_password_encrypted':''})
+
+    def keyExists(self, key):
+        if os.path.exists(key):
+            return True
+        else:
+            return False

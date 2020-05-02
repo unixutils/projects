@@ -1,17 +1,21 @@
 #!/usr/bin/python
 from fabric.api import *
-from fabric import network
 
 class remote_ops():
 
     def __init__(self, **kwargs):
-        self.commands = ['uname', 'hostname']
+
         self.defaultPort = 22
 
-        if 'runMode' in kwargs:
-            self.runMode = kwargs['runMode']
+        if 'parallelMode' in kwargs:
+            self.parallelMode = kwargs['parallelMode']
         else:
-            self.runMode = None
+            self.parallelMode = False
+
+        if 'hosts' in kwargs:
+            self.hosts = kwargs['hosts']
+        else:
+            self.hosts = None
 
         if 'sshUser' in kwargs:
             self.sshUser = kwargs['sshUser']
@@ -23,30 +27,77 @@ class remote_ops():
         else:
             self.sshPassword = None
 
+        if 'sshKeyFile' in kwargs:
+            self.sshKeyFile = kwargs['sshKeyFile']
+        else:
+            self.sshKeyFile = None
+
         if 'sshPort' in kwargs:
             self.sshPort = kwargs['sshPort']
         else:
             self.sshPort = None
 
-    def task(self):
-        try:
-            for cmd in self.commands:
-                run(cmd, shell=False)
-        except Exception, e:
-            print("Unable to run command: " + cmd + '\n '+str(e))
+        if 'commands' in kwargs:
+            self.commands = kwargs['commands']
+        else:
+            self.commands = None
 
-        network.disconnect_all()
+        if 'commandTimeOut' in kwargs:
+            self.commandTimeOut = kwargs['commandTimeOut']
+        else:
+            self.commandTimeOut = None
 
-    def execute(self, hosts):
+        if 'excludeHosts' in kwargs:
+            self.excludeHosts = kwargs['excludeHosts']
+        else:
+            self.excludeHosts = None
+
+        if 'sudoPassword' in kwargs:
+            self.sudoPassword = kwargs['sudoPassword']
+        else:
+            self.sudoPassword = None
+
+        if 'connectTimeout' in kwargs:
+            self.connectTimeout = kwargs['connectTimeout']
+        else:
+            self.connectTimeout = None
+
+
+    def runCommands(self):
+        if self.commands:
+            try:
+                for cmd in self.commands:
+                    run(cmd, shell=False)
+            except Exception, e:
+                raise Exception('Unable to run command: ' + cmd + '\n '+ str(e))
+        else:
+            raise Exception('No Commands given to run.')
+
+
+    def executeTask(self):
+        env.output_prefix = False
+        env.abort_on_prompts = False
+        env.disable_known_hosts = True
+        env.eagerly_disconnect = True
+        env.disable_known_hosts = True
+
         if self.sshUser:
             env.user = self.sshUser
 
         if self.sshPassword:
             env.password = self.sshPassword
 
-        if self.runMode and self.sshPassword:
+        if self.sshKeyFile:
+            env.key_filename = self.sshKeyFile
+
+        if self.sudoPassword:
+            env.sudo_password = self.sudoPassword
+
+        if self.parallelMode and self.sshPassword:
             env.parallel = True
+            env.output_prefix = True
         else:
+            print("Cannot run Parallel-mode without ssh-password OR ssh-private-key. Switching to Serial-mode.")
             env.parallel = False
 
         if self.sshPort:
@@ -54,4 +105,16 @@ class remote_ops():
         else:
             env.port = self.defaultPort
 
-        execute(self.task,hosts=hosts)
+        if self.commandTimeOut:
+            env.command_timeout = self.commandTimeOut
+
+        if self.excludeHosts:
+            env.exclude_hosts = self.excludeHosts
+
+        if self.connectTimeout:
+            env.timeout = self.connectTimeout
+
+        if self.hosts:
+            execute(self.runCommands, hosts = self.hosts)
+        else:
+            raise Exception('No hosts given to execute task.')
